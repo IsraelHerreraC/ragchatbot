@@ -4,7 +4,10 @@
       "Bash(test:*)",
       "mcp__playwright__browser_navigate",
       "mcp__playwright__browser_take_screenshot",
-      "mcp__playwright__browser_press_key"
+      "mcp__playwright__browser_press_key",
+      "Bash(uv run:*)",
+      "Bash(cat:*)",
+      "Bash(uv sync:*)"
     ],
     "deny": [],
     "ask": []
