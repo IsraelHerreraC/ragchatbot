@@ -239,3 +239,4 @@ Returns:
 **Changing frontend UI**: `frontend/index.html`, `frontend/style.css`, `frontend/script.js`
 
 **Tuning performance**: `config.py` (chunk sizes, max results, history length)
+- When adding or commiting, do not include in the description information related to Claude Code
