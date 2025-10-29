@@ -185,3 +185,141 @@ def sample_anthropic_final_response():
         Mock(type="text", text="Based on the search results, machine learning is...")
     ]
     return mock_response
+
+
+# API Testing Fixtures
+
+@pytest.fixture
+def mock_rag_system():
+    """Create a mock RAG system for API testing."""
+    mock_rag = Mock()
+
+    # Mock session manager
+    mock_session = Mock()
+    mock_session.create_session = Mock(return_value="session_1")
+    mock_session.clear_session = Mock()
+    mock_rag.session_manager = mock_session
+
+    # Mock query method
+    mock_rag.query = Mock(return_value=(
+        "Machine learning is a subset of artificial intelligence.",
+        [
+            {"text": "Introduction to Machine Learning - Lesson 0", "link": "https://example.com/ml-course/lesson-0"},
+            {"text": "Introduction to Machine Learning - Lesson 1", "link": "https://example.com/ml-course/lesson-1"}
+        ]
+    ))
+
+    # Mock get_course_analytics method
+    mock_rag.get_course_analytics = Mock(return_value={
+        "total_courses": 2,
+        "course_titles": ["Introduction to Machine Learning", "Deep Learning Fundamentals"]
+    })
+
+    return mock_rag
+
+
+@pytest.fixture
+def test_app(mock_rag_system):
+    """
+    Create a test FastAPI app without static file mounting to avoid import issues.
+    This fixture creates a clean app instance for testing API endpoints.
+    """
+    from fastapi import FastAPI, HTTPException
+    from fastapi.middleware.cors import CORSMiddleware
+    from pydantic import BaseModel
+    from typing import List, Optional
+
+    # Create test app
+    test_app = FastAPI(title="Course Materials RAG System - Test", root_path="")
+
+    # Enable CORS
+    test_app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+
+    # Pydantic models (duplicated from app.py to avoid import issues)
+    class QueryRequest(BaseModel):
+        query: str
+        session_id: Optional[str] = None
+
+    class Source(BaseModel):
+        text: str
+        link: Optional[str] = None
+
+    class QueryResponse(BaseModel):
+        answer: str
+        sources: List[Source]
+        session_id: str
+
+    class CourseStats(BaseModel):
+        total_courses: int
+        course_titles: List[str]
+
+    class ClearSessionRequest(BaseModel):
+        session_id: str
+
+    class ClearSessionResponse(BaseModel):
+        success: bool
+        message: str
+
+    # API Endpoints
+    @test_app.post("/api/query", response_model=QueryResponse)
+    async def query_documents(request: QueryRequest):
+        try:
+            session_id = request.session_id
+            if not session_id:
+                session_id = mock_rag_system.session_manager.create_session()
+
+            answer, sources = mock_rag_system.query(request.query, session_id)
+
+            return QueryResponse(
+                answer=answer,
+                sources=sources,
+                session_id=session_id
+            )
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=str(e))
+
+    @test_app.get("/api/courses", response_model=CourseStats)
+    async def get_course_stats():
+        try:
+            analytics = mock_rag_system.get_course_analytics()
+            return CourseStats(
+                total_courses=analytics["total_courses"],
+                course_titles=analytics["course_titles"]
+            )
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=str(e))
+
+    @test_app.post("/api/session/clear", response_model=ClearSessionResponse)
+    async def clear_session(request: ClearSessionRequest):
+        try:
+            mock_rag_system.session_manager.clear_session(request.session_id)
+            return ClearSessionResponse(
+                success=True,
+                message=f"Session {request.session_id} cleared successfully"
+            )
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=str(e))
+
+    @test_app.get("/")
+    async def root():
+        return {"message": "Course Materials RAG System API"}
+
+    return test_app
+
+
+@pytest.fixture
+async def async_client(test_app):
+    """Create an async test client for API testing."""
+    from httpx import AsyncClient, ASGITransport
+
+    async with AsyncClient(
+        transport=ASGITransport(app=test_app),
+        base_url="http://test"
+    ) as client:
+        yield client
