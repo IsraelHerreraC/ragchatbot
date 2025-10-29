@@ -524,7 +524,7 @@ header h1 {
     border: none;
     color: var(--text-secondary);
     font-size: 0.875rem;
-    font-weight: 600;
+    font-weight: 400;
     cursor: pointer;
     transition: color 0.2s ease;
     text-align: left;
