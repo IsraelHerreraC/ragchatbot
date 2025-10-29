@@ -9,8 +9,10 @@ This test suite verifies:
 - Conversation history integration
 - Error handling
 """
+
+from unittest.mock import MagicMock, Mock, patch
+
 import pytest
-from unittest.mock import Mock, patch, MagicMock
 from ai_generator import AIGenerator
 from tests.test_helpers import create_anthropic_response
 
@@ -18,11 +20,9 @@ from tests.test_helpers import create_anthropic_response
 class TestAIGeneratorBasicResponses:
     """Tests for basic text responses without tool use."""
 
-    @patch('ai_generator.anthropic.Anthropic')
+    @patch("ai_generator.anthropic.Anthropic")
     def test_generate_simple_text_response(
-        self,
-        mock_anthropic_class,
-        sample_anthropic_text_response
+        self, mock_anthropic_class, sample_anthropic_text_response
     ):
         """Test generating a simple text response without tools."""
         # Setup
@@ -46,11 +46,9 @@ class TestAIGeneratorBasicResponses:
         assert call_args.kwargs["max_tokens"] == 800
         assert call_args.kwargs["messages"][0]["content"] == "What is 2+2?"
 
-    @patch('ai_generator.anthropic.Anthropic')
+    @patch("ai_generator.anthropic.Anthropic")
     def test_generate_response_with_conversation_history(
-        self,
-        mock_anthropic_class,
-        sample_anthropic_text_response
+        self, mock_anthropic_class, sample_anthropic_text_response
     ):
         """Test that conversation history is included in system prompt."""
         # Setup
@@ -64,8 +62,7 @@ class TestAIGeneratorBasicResponses:
 
         # Execute
         result = generator.generate_response(
-            query="How are you?",
-            conversation_history=history
+            query="How are you?", conversation_history=history
         )
 
         # Verify
@@ -73,11 +70,9 @@ class TestAIGeneratorBasicResponses:
         assert "Previous conversation" in call_args.kwargs["system"]
         assert history in call_args.kwargs["system"]
 
-    @patch('ai_generator.anthropic.Anthropic')
+    @patch("ai_generator.anthropic.Anthropic")
     def test_generate_response_without_history(
-        self,
-        mock_anthropic_class,
-        sample_anthropic_text_response
+        self, mock_anthropic_class, sample_anthropic_text_response
     ):
         """Test that system prompt works without conversation history."""
         # Setup
@@ -98,13 +93,13 @@ class TestAIGeneratorBasicResponses:
 class TestAIGeneratorToolCalling:
     """Tests for tool calling functionality."""
 
-    @patch('ai_generator.anthropic.Anthropic')
+    @patch("ai_generator.anthropic.Anthropic")
     def test_tool_use_triggers_two_phase_flow(
         self,
         mock_anthropic_class,
         sample_anthropic_tool_use_response,
         sample_anthropic_final_response,
-        mock_tool_manager
+        mock_tool_manager,
     ):
         """Test that tool_use response triggers the two-phase API call pattern."""
         # Setup
@@ -114,7 +109,7 @@ class TestAIGeneratorToolCalling:
         # First call returns tool_use, second call returns final response
         mock_client.messages.create.side_effect = [
             sample_anthropic_tool_use_response,
-            sample_anthropic_final_response
+            sample_anthropic_final_response,
         ]
 
         mock_tool_manager.execute_tool.return_value = "Search results about ML"
@@ -125,7 +120,7 @@ class TestAIGeneratorToolCalling:
         result = generator.generate_response(
             query="What is machine learning?",
             tools=[{"name": "search_course_content"}],
-            tool_manager=mock_tool_manager
+            tool_manager=mock_tool_manager,
         )
 
         # Verify
@@ -133,13 +128,13 @@ class TestAIGeneratorToolCalling:
         assert mock_client.messages.create.call_count == 2
         mock_tool_manager.execute_tool.assert_called_once()
 
-    @patch('ai_generator.anthropic.Anthropic')
+    @patch("ai_generator.anthropic.Anthropic")
     def test_tool_execution_called_with_correct_parameters(
         self,
         mock_anthropic_class,
         sample_anthropic_tool_use_response,
         sample_anthropic_final_response,
-        mock_tool_manager
+        mock_tool_manager,
     ):
         """Test that tool is executed with correct parameters from API response."""
         # Setup
@@ -147,7 +142,7 @@ class TestAIGeneratorToolCalling:
         mock_anthropic_class.return_value = mock_client
         mock_client.messages.create.side_effect = [
             sample_anthropic_tool_use_response,
-            sample_anthropic_final_response
+            sample_anthropic_final_response,
         ]
 
         mock_tool_manager.execute_tool.return_value = "Tool result"
@@ -158,22 +153,21 @@ class TestAIGeneratorToolCalling:
         result = generator.generate_response(
             query="Search for ML basics",
             tools=[{"name": "search_course_content"}],
-            tool_manager=mock_tool_manager
+            tool_manager=mock_tool_manager,
         )
 
         # Verify tool was called correctly
         mock_tool_manager.execute_tool.assert_called_once_with(
-            "search_course_content",
-            query="machine learning basics"
+            "search_course_content", query="machine learning basics"
         )
 
-    @patch('ai_generator.anthropic.Anthropic')
+    @patch("ai_generator.anthropic.Anthropic")
     def test_tool_results_sent_in_second_api_call(
         self,
         mock_anthropic_class,
         sample_anthropic_tool_use_response,
         sample_anthropic_final_response,
-        mock_tool_manager
+        mock_tool_manager,
     ):
         """Test that tool results are correctly formatted in second API call."""
         # Setup
@@ -181,7 +175,7 @@ class TestAIGeneratorToolCalling:
         mock_anthropic_class.return_value = mock_client
         mock_client.messages.create.side_effect = [
             sample_anthropic_tool_use_response,
-            sample_anthropic_final_response
+            sample_anthropic_final_response,
         ]
 
         tool_result = "Machine learning is a subset of AI..."
@@ -193,7 +187,7 @@ class TestAIGeneratorToolCalling:
         result = generator.generate_response(
             query="What is ML?",
             tools=[{"name": "search_course_content"}],
-            tool_manager=mock_tool_manager
+            tool_manager=mock_tool_manager,
         )
 
         # Verify second API call structure
@@ -210,11 +204,9 @@ class TestAIGeneratorToolCalling:
         assert tool_result_msg["content"][0]["tool_use_id"] == "tool_call_123"
         assert tool_result_msg["content"][0]["content"] == tool_result
 
-    @patch('ai_generator.anthropic.Anthropic')
+    @patch("ai_generator.anthropic.Anthropic")
     def test_tools_parameter_added_to_first_call(
-        self,
-        mock_anthropic_class,
-        sample_anthropic_text_response
+        self, mock_anthropic_class, sample_anthropic_text_response
     ):
         """Test that tools parameter is added to first API call."""
         # Setup
@@ -227,10 +219,7 @@ class TestAIGeneratorToolCalling:
         tools = [{"name": "search_course_content", "description": "Search courses"}]
 
         # Execute
-        result = generator.generate_response(
-            query="Test query",
-            tools=tools
-        )
+        result = generator.generate_response(query="Test query", tools=tools)
 
         # Verify
         call_args = mock_client.messages.create.call_args
@@ -238,11 +227,9 @@ class TestAIGeneratorToolCalling:
         assert call_args.kwargs["tools"] == tools
         assert call_args.kwargs["tool_choice"] == {"type": "auto"}
 
-    @patch('ai_generator.anthropic.Anthropic')
+    @patch("ai_generator.anthropic.Anthropic")
     def test_no_tool_manager_with_tool_use(
-        self,
-        mock_anthropic_class,
-        sample_anthropic_tool_use_response
+        self, mock_anthropic_class, sample_anthropic_tool_use_response
     ):
         """Test handling when tool_use occurs but no tool_manager provided."""
         # Setup
@@ -256,7 +243,7 @@ class TestAIGeneratorToolCalling:
         result = generator.generate_response(
             query="Test",
             tools=[{"name": "test_tool"}],
-            tool_manager=None  # No tool manager
+            tool_manager=None,  # No tool manager
         )
 
         # Verify - should not crash, but won't return proper response
@@ -267,12 +254,9 @@ class TestAIGeneratorToolCalling:
 class TestAIGeneratorEdgeCases:
     """Tests for edge cases and error handling."""
 
-    @patch('ai_generator.anthropic.Anthropic')
+    @patch("ai_generator.anthropic.Anthropic")
     def test_multiple_tool_calls_in_response(
-        self,
-        mock_anthropic_class,
-        sample_anthropic_final_response,
-        mock_tool_manager
+        self, mock_anthropic_class, sample_anthropic_final_response, mock_tool_manager
     ):
         """Test handling of multiple tool calls in single response."""
         # Setup
@@ -298,13 +282,10 @@ class TestAIGeneratorEdgeCases:
 
         mock_client.messages.create.side_effect = [
             multi_tool_response,
-            sample_anthropic_final_response
+            sample_anthropic_final_response,
         ]
 
-        mock_tool_manager.execute_tool.side_effect = [
-            "Result 1",
-            "Result 2"
-        ]
+        mock_tool_manager.execute_tool.side_effect = ["Result 1", "Result 2"]
 
         generator = AIGenerator(api_key="test_key", model="claude-sonnet-4-20250514")
 
@@ -312,19 +293,19 @@ class TestAIGeneratorEdgeCases:
         result = generator.generate_response(
             query="Test multi-tool",
             tools=[{"name": "search_course_content"}, {"name": "get_course_outline"}],
-            tool_manager=mock_tool_manager
+            tool_manager=mock_tool_manager,
         )
 
         # Verify both tools were executed
         assert mock_tool_manager.execute_tool.call_count == 2
 
-    @patch('ai_generator.anthropic.Anthropic')
+    @patch("ai_generator.anthropic.Anthropic")
     def test_empty_tool_results(
         self,
         mock_anthropic_class,
         sample_anthropic_tool_use_response,
         sample_anthropic_final_response,
-        mock_tool_manager
+        mock_tool_manager,
     ):
         """Test handling of empty string tool results."""
         # Setup
@@ -332,7 +313,7 @@ class TestAIGeneratorEdgeCases:
         mock_anthropic_class.return_value = mock_client
         mock_client.messages.create.side_effect = [
             sample_anthropic_tool_use_response,
-            sample_anthropic_final_response
+            sample_anthropic_final_response,
         ]
 
         mock_tool_manager.execute_tool.return_value = ""  # Empty result
@@ -341,21 +322,19 @@ class TestAIGeneratorEdgeCases:
 
         # Execute
         result = generator.generate_response(
-            query="Test",
-            tools=[{"name": "test_tool"}],
-            tool_manager=mock_tool_manager
+            query="Test", tools=[{"name": "test_tool"}], tool_manager=mock_tool_manager
         )
 
         # Should still work with empty result
         assert result == "Based on the search results, machine learning is..."
 
-    @patch('ai_generator.anthropic.Anthropic')
+    @patch("ai_generator.anthropic.Anthropic")
     def test_tool_returns_error_string(
         self,
         mock_anthropic_class,
         sample_anthropic_tool_use_response,
         sample_anthropic_final_response,
-        mock_tool_manager
+        mock_tool_manager,
     ):
         """Test that tool error strings are passed to AI."""
         # Setup
@@ -363,7 +342,7 @@ class TestAIGeneratorEdgeCases:
         mock_anthropic_class.return_value = mock_client
         mock_client.messages.create.side_effect = [
             sample_anthropic_tool_use_response,
-            sample_anthropic_final_response
+            sample_anthropic_final_response,
         ]
 
         error_msg = "Search error: No course found matching 'XYZ'"
@@ -375,7 +354,7 @@ class TestAIGeneratorEdgeCases:
         result = generator.generate_response(
             query="Find XYZ course",
             tools=[{"name": "search_course_content"}],
-            tool_manager=mock_tool_manager
+            tool_manager=mock_tool_manager,
         )
 
         # Verify error was passed to second API call
@@ -387,11 +366,9 @@ class TestAIGeneratorEdgeCases:
 class TestAIGeneratorSequentialToolCalling:
     """Tests for sequential tool calling functionality (multi-round)."""
 
-    @patch('ai_generator.anthropic.Anthropic')
+    @patch("ai_generator.anthropic.Anthropic")
     def test_single_round_backward_compatibility(
-        self,
-        mock_anthropic_class,
-        mock_tool_manager
+        self, mock_anthropic_class, mock_tool_manager
     ):
         """
         Test that single tool call followed by end_turn still works.
@@ -415,22 +392,23 @@ class TestAIGeneratorSequentialToolCalling:
         # Create final text response for second call
         final_response = Mock()
         final_response.stop_reason = "end_turn"
-        final_response.content = [Mock(type="text", text="Machine learning is a subset of AI...")]
-
-        mock_client.messages.create.side_effect = [
-            tool_use_response,
-            final_response
+        final_response.content = [
+            Mock(type="text", text="Machine learning is a subset of AI...")
         ]
+
+        mock_client.messages.create.side_effect = [tool_use_response, final_response]
 
         mock_tool_manager.execute_tool.return_value = "ML: subset of AI..."
 
-        generator = AIGenerator(api_key="test_key", model="claude-sonnet-4-20250514", max_tool_rounds=2)
+        generator = AIGenerator(
+            api_key="test_key", model="claude-sonnet-4-20250514", max_tool_rounds=2
+        )
 
         # Execute
         result = generator.generate_response(
             query="What is ML?",
             tools=[{"name": "search_course_content"}],
-            tool_manager=mock_tool_manager
+            tool_manager=mock_tool_manager,
         )
 
         # Verify
@@ -446,11 +424,9 @@ class TestAIGeneratorSequentialToolCalling:
         assert messages[1]["role"] == "assistant"  # Tool use
         assert messages[2]["role"] == "user"  # Tool result
 
-    @patch('ai_generator.anthropic.Anthropic')
+    @patch("ai_generator.anthropic.Anthropic")
     def test_two_sequential_tool_calls_with_different_tools(
-        self,
-        mock_anthropic_class,
-        mock_tool_manager
+        self, mock_anthropic_class, mock_tool_manager
     ):
         """
         Verify that Claude can call tool A, then tool B based on results.
@@ -489,26 +465,30 @@ class TestAIGeneratorSequentialToolCalling:
         # Final: Text response
         final_response = Mock()
         final_response.stop_reason = "end_turn"
-        final_response.content = [Mock(type="text", text="ML focuses on algorithms, while AI is broader...")]
+        final_response.content = [
+            Mock(type="text", text="ML focuses on algorithms, while AI is broader...")
+        ]
 
         mock_client.messages.create.side_effect = [
             tool_use_1,
             tool_use_2,
-            final_response
+            final_response,
         ]
 
         mock_tool_manager.execute_tool.side_effect = [
             "ML course content: focuses on algorithms...",
-            "AI course content: covers broad topics..."
+            "AI course content: covers broad topics...",
         ]
 
-        generator = AIGenerator(api_key="test_key", model="claude-sonnet-4-20250514", max_tool_rounds=2)
+        generator = AIGenerator(
+            api_key="test_key", model="claude-sonnet-4-20250514", max_tool_rounds=2
+        )
 
         # Execute
         result = generator.generate_response(
             query="Compare ML course to AI course",
             tools=[{"name": "search_course_content"}],
-            tool_manager=mock_tool_manager
+            tool_manager=mock_tool_manager,
         )
 
         # Verify
@@ -530,19 +510,19 @@ class TestAIGeneratorSequentialToolCalling:
         assert "tool_choice" not in call_3.kwargs
 
         # Verify message structure at final call (5 messages)
-        final_messages = mock_client.messages.create.call_args_list[2].kwargs["messages"]
+        final_messages = mock_client.messages.create.call_args_list[2].kwargs[
+            "messages"
+        ]
         assert len(final_messages) == 5
-        assert final_messages[0]["role"] == "user"       # Original query
+        assert final_messages[0]["role"] == "user"  # Original query
         assert final_messages[1]["role"] == "assistant"  # Tool use 1
-        assert final_messages[2]["role"] == "user"       # Tool result 1
+        assert final_messages[2]["role"] == "user"  # Tool result 1
         assert final_messages[3]["role"] == "assistant"  # Tool use 2
-        assert final_messages[4]["role"] == "user"       # Tool result 2
+        assert final_messages[4]["role"] == "user"  # Tool result 2
 
-    @patch('ai_generator.anthropic.Anthropic')
+    @patch("ai_generator.anthropic.Anthropic")
     def test_max_rounds_prevents_infinite_loop(
-        self,
-        mock_anthropic_class,
-        mock_tool_manager
+        self, mock_anthropic_class, mock_tool_manager
     ):
         """
         Verify that tool calling stops after max_tool_rounds.
@@ -592,22 +572,24 @@ class TestAIGeneratorSequentialToolCalling:
         mock_client.messages.create.side_effect = [
             tool_use_0,  # Initial call
             tool_use_1,  # Round 1 with tools
-            tool_use_2   # Round 2 without tools (but still returns tool_use)
+            tool_use_2,  # Round 2 without tools (but still returns tool_use)
         ]
 
         mock_tool_manager.execute_tool.side_effect = [
             "Result 0",
             "Result 1",
-            "Result 2"
+            "Result 2",
         ]
 
-        generator = AIGenerator(api_key="test_key", model="claude-sonnet-4-20250514", max_tool_rounds=2)
+        generator = AIGenerator(
+            api_key="test_key", model="claude-sonnet-4-20250514", max_tool_rounds=2
+        )
 
         # Execute
         result = generator.generate_response(
             query="Complex question",
             tools=[{"name": "search_course_content"}],
-            tool_manager=mock_tool_manager
+            tool_manager=mock_tool_manager,
         )
 
         # Verify
@@ -623,11 +605,9 @@ class TestAIGeneratorSequentialToolCalling:
         call_3 = mock_client.messages.create.call_args_list[2]  # Round 2 (final)
         assert "tools" not in call_3.kwargs
 
-    @patch('ai_generator.anthropic.Anthropic')
+    @patch("ai_generator.anthropic.Anthropic")
     def test_tool_error_sent_to_claude_for_recovery(
-        self,
-        mock_anthropic_class,
-        mock_tool_manager
+        self, mock_anthropic_class, mock_tool_manager
     ):
         """
         Verify that tool errors are passed to Claude, allowing recovery.
@@ -666,27 +646,31 @@ class TestAIGeneratorSequentialToolCalling:
         # Final: Text response
         final_response = Mock()
         final_response.stop_reason = "end_turn"
-        final_response.content = [Mock(type="text", text="Here's the course outline...")]
+        final_response.content = [
+            Mock(type="text", text="Here's the course outline...")
+        ]
 
         mock_client.messages.create.side_effect = [
             tool_use_1,
             tool_use_2,
-            final_response
+            final_response,
         ]
 
         # First tool throws exception, second succeeds
         mock_tool_manager.execute_tool.side_effect = [
             Exception("Course not found matching 'XYZ'"),
-            "Outline: Lesson 1, Lesson 2..."
+            "Outline: Lesson 1, Lesson 2...",
         ]
 
-        generator = AIGenerator(api_key="test_key", model="claude-sonnet-4-20250514", max_tool_rounds=2)
+        generator = AIGenerator(
+            api_key="test_key", model="claude-sonnet-4-20250514", max_tool_rounds=2
+        )
 
         # Execute
         result = generator.generate_response(
             query="Find XYZ course",
             tools=[{"name": "search_course_content"}, {"name": "get_course_outline"}],
-            tool_manager=mock_tool_manager
+            tool_manager=mock_tool_manager,
         )
 
         # Verify
@@ -700,11 +684,9 @@ class TestAIGeneratorSequentialToolCalling:
         assert "Tool execution failed" in tool_result_content
         assert "Course not found" in tool_result_content
 
-    @patch('ai_generator.anthropic.Anthropic')
+    @patch("ai_generator.anthropic.Anthropic")
     def test_tools_parameter_management_across_rounds(
-        self,
-        mock_anthropic_class,
-        mock_tool_manager
+        self, mock_anthropic_class, mock_tool_manager
     ):
         """
         Verify tools parameter is correctly added/removed across rounds.
@@ -751,22 +733,30 @@ class TestAIGeneratorSequentialToolCalling:
         mock_client.messages.create.side_effect = [
             tool_use_0,  # Initial
             tool_use_1,  # Round 1
-            tool_use_2   # Round 2
+            tool_use_2,  # Round 2
         ]
 
-        mock_tool_manager.execute_tool.side_effect = ["Result 0", "Result 1", "Result 2"]
+        mock_tool_manager.execute_tool.side_effect = [
+            "Result 0",
+            "Result 1",
+            "Result 2",
+        ]
 
-        generator = AIGenerator(api_key="test_key", model="claude-sonnet-4-20250514", max_tool_rounds=2)
+        generator = AIGenerator(
+            api_key="test_key", model="claude-sonnet-4-20250514", max_tool_rounds=2
+        )
 
         # Execute
         result = generator.generate_response(
             query="Test query",
             tools=[{"name": "search_course_content"}],
-            tool_manager=mock_tool_manager
+            tool_manager=mock_tool_manager,
         )
 
         # Verify tools parameter presence
-        call_1_params = mock_client.messages.create.call_args_list[0].kwargs  # Initial call
+        call_1_params = mock_client.messages.create.call_args_list[
+            0
+        ].kwargs  # Initial call
         assert "tools" in call_1_params
         assert call_1_params["tool_choice"] == {"type": "auto"}
 
@@ -775,6 +765,8 @@ class TestAIGeneratorSequentialToolCalling:
         assert call_2_params["tool_choice"] == {"type": "auto"}
 
         # KEY: Third call (round 2) should NOT have tools parameter (final round)
-        call_3_params = mock_client.messages.create.call_args_list[2].kwargs  # Round 2 (final)
+        call_3_params = mock_client.messages.create.call_args_list[
+            2
+        ].kwargs  # Round 2 (final)
         assert "tools" not in call_3_params
         assert "tool_choice" not in call_3_params

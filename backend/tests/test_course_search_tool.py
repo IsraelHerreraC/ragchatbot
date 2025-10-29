@@ -7,11 +7,13 @@ This test suite verifies:
 - Source tracking with and without links
 - Result formatting
 """
-import pytest
+
 from unittest.mock import Mock, patch
+
+import pytest
 from search_tools import CourseSearchTool
+from tests.test_helpers import assert_source_format, create_search_results
 from vector_store import SearchResults
-from tests.test_helpers import create_search_results, assert_source_format
 
 
 class TestCourseSearchToolExecute:
@@ -28,9 +30,7 @@ class TestCourseSearchToolExecute:
 
         # Verify
         mock_vector_store.search.assert_called_once_with(
-            query="machine learning basics",
-            course_name=None,
-            lesson_number=None
+            query="machine learning basics", course_name=None, lesson_number=None
         )
         assert isinstance(result, str)
         assert "Introduction to Machine Learning" in result
@@ -44,15 +44,14 @@ class TestCourseSearchToolExecute:
 
         # Execute
         result = tool.execute(
-            query="supervised learning",
-            course_name="Machine Learning"
+            query="supervised learning", course_name="Machine Learning"
         )
 
         # Verify
         mock_vector_store.search.assert_called_once_with(
             query="supervised learning",
             course_name="Machine Learning",
-            lesson_number=None
+            lesson_number=None,
         )
         assert isinstance(result, str)
 
@@ -63,16 +62,11 @@ class TestCourseSearchToolExecute:
         mock_vector_store.search.return_value = sample_search_results
 
         # Execute
-        result = tool.execute(
-            query="linear regression",
-            lesson_number=1
-        )
+        result = tool.execute(query="linear regression", lesson_number=1)
 
         # Verify
         mock_vector_store.search.assert_called_once_with(
-            query="linear regression",
-            course_name=None,
-            lesson_number=1
+            query="linear regression", course_name=None, lesson_number=1
         )
         assert isinstance(result, str)
 
@@ -84,16 +78,12 @@ class TestCourseSearchToolExecute:
 
         # Execute
         result = tool.execute(
-            query="decision trees",
-            course_name="ML Course",
-            lesson_number=2
+            query="decision trees", course_name="ML Course", lesson_number=2
         )
 
         # Verify
         mock_vector_store.search.assert_called_once_with(
-            query="decision trees",
-            course_name="ML Course",
-            lesson_number=2
+            query="decision trees", course_name="ML Course", lesson_number=2
         )
         assert isinstance(result, str)
 
@@ -109,39 +99,39 @@ class TestCourseSearchToolExecute:
         # Verify
         assert "No relevant content found" in result
 
-    def test_execute_empty_results_with_course_filter(self, mock_vector_store, empty_search_results):
+    def test_execute_empty_results_with_course_filter(
+        self, mock_vector_store, empty_search_results
+    ):
         """Test empty results message includes course filter info."""
         # Setup
         tool = CourseSearchTool(mock_vector_store)
         mock_vector_store.search.return_value = empty_search_results
 
         # Execute
-        result = tool.execute(
-            query="quantum physics",
-            course_name="Machine Learning"
-        )
+        result = tool.execute(query="quantum physics", course_name="Machine Learning")
 
         # Verify
         assert "No relevant content found" in result
         assert "Machine Learning" in result
 
-    def test_execute_empty_results_with_lesson_filter(self, mock_vector_store, empty_search_results):
+    def test_execute_empty_results_with_lesson_filter(
+        self, mock_vector_store, empty_search_results
+    ):
         """Test empty results message includes lesson filter info."""
         # Setup
         tool = CourseSearchTool(mock_vector_store)
         mock_vector_store.search.return_value = empty_search_results
 
         # Execute
-        result = tool.execute(
-            query="advanced topics",
-            lesson_number=5
-        )
+        result = tool.execute(query="advanced topics", lesson_number=5)
 
         # Verify
         assert "No relevant content found" in result
         assert "lesson 5" in result
 
-    def test_execute_error_from_vector_store(self, mock_vector_store, error_search_results):
+    def test_execute_error_from_vector_store(
+        self, mock_vector_store, error_search_results
+    ):
         """Test handling of error from vector store."""
         # Setup
         tool = CourseSearchTool(mock_vector_store)
@@ -160,7 +150,7 @@ class TestCourseSearchToolExecute:
         mock_vector_store.search.return_value = sample_search_results
         mock_vector_store.get_lesson_link.side_effect = [
             "https://example.com/lesson-0",
-            "https://example.com/lesson-1"
+            "https://example.com/lesson-1",
         ]
 
         # Execute
@@ -173,10 +163,16 @@ class TestCourseSearchToolExecute:
         assert_source_format(tool.last_sources)
 
         # Verify source content
-        assert tool.last_sources[0]["text"] == "Introduction to Machine Learning - Lesson 0"
+        assert (
+            tool.last_sources[0]["text"]
+            == "Introduction to Machine Learning - Lesson 0"
+        )
         assert tool.last_sources[0]["link"] == "https://example.com/lesson-0"
 
-        assert tool.last_sources[1]["text"] == "Introduction to Machine Learning - Lesson 1"
+        assert (
+            tool.last_sources[1]["text"]
+            == "Introduction to Machine Learning - Lesson 1"
+        )
         assert tool.last_sources[1]["link"] == "https://example.com/lesson-1"
 
     def test_source_tracking_without_lesson_number(self, mock_vector_store):
@@ -187,13 +183,15 @@ class TestCourseSearchToolExecute:
         # Create results with None lesson_number
         results = SearchResults(
             documents=["Course introduction content"],
-            metadata=[{
-                "course_title": "Data Science Course",
-                "lesson_number": None,
-                "chunk_index": 0
-            }],
+            metadata=[
+                {
+                    "course_title": "Data Science Course",
+                    "lesson_number": None,
+                    "chunk_index": 0,
+                }
+            ],
             distances=[0.1],
-            error=None
+            error=None,
         )
         mock_vector_store.search.return_value = results
 
@@ -205,7 +203,9 @@ class TestCourseSearchToolExecute:
         assert tool.last_sources[0]["text"] == "Data Science Course"
         assert tool.last_sources[0]["link"] is None
 
-    def test_source_tracking_link_is_none(self, mock_vector_store, sample_search_results):
+    def test_source_tracking_link_is_none(
+        self, mock_vector_store, sample_search_results
+    ):
         """Test source tracking when get_lesson_link returns None."""
         # Setup
         tool = CourseSearchTool(mock_vector_store)
@@ -228,10 +228,10 @@ class TestCourseSearchToolExecute:
             documents=[
                 "First document about neural networks",
                 "Second document about deep learning",
-                "Third document about CNNs"
+                "Third document about CNNs",
             ],
             course_title="Deep Learning Course",
-            lesson_numbers=[1, 1, 2]
+            lesson_numbers=[1, 1, 2],
         )
         mock_vector_store.search.return_value = results
         mock_vector_store.get_lesson_link.return_value = None
@@ -255,9 +255,7 @@ class TestCourseSearchToolExecute:
         tool = CourseSearchTool(mock_vector_store)
 
         results = create_search_results(
-            documents=["Test content"],
-            course_title="Test Course",
-            lesson_numbers=[3]
+            documents=["Test content"], course_title="Test Course", lesson_numbers=[3]
         )
         mock_vector_store.search.return_value = results
         mock_vector_store.get_lesson_link.return_value = None
@@ -275,13 +273,11 @@ class TestCourseSearchToolExecute:
 
         results = SearchResults(
             documents=["Test content"],
-            metadata=[{
-                "course_title": "Test Course",
-                "lesson_number": None,
-                "chunk_index": 0
-            }],
+            metadata=[
+                {"course_title": "Test Course", "lesson_number": None, "chunk_index": 0}
+            ],
             distances=[0.1],
-            error=None
+            error=None,
         )
         mock_vector_store.search.return_value = results
 
@@ -292,7 +288,9 @@ class TestCourseSearchToolExecute:
         assert "[Test Course]" in result
         assert "Lesson" not in result
 
-    def test_get_lesson_link_called_correctly(self, mock_vector_store, sample_search_results):
+    def test_get_lesson_link_called_correctly(
+        self, mock_vector_store, sample_search_results
+    ):
         """Test that get_lesson_link is called with correct parameters."""
         # Setup
         tool = CourseSearchTool(mock_vector_store)
@@ -305,10 +303,8 @@ class TestCourseSearchToolExecute:
         # Verify get_lesson_link calls
         assert mock_vector_store.get_lesson_link.call_count == 2
         mock_vector_store.get_lesson_link.assert_any_call(
-            "Introduction to Machine Learning",
-            0
+            "Introduction to Machine Learning", 0
         )
         mock_vector_store.get_lesson_link.assert_any_call(
-            "Introduction to Machine Learning",
-            1
+            "Introduction to Machine Learning", 1
         )

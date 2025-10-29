@@ -1,9 +1,11 @@
 """
 Helper functions and utilities for testing the RAG system.
 """
-from typing import List, Dict, Any, Optional
+
+from typing import Any, Dict, List, Optional
 from unittest.mock import Mock
-from models import Course, Lesson, CourseChunk
+
+from models import Course, CourseChunk, Lesson
 from vector_store import SearchResults
 
 
@@ -11,7 +13,7 @@ def create_search_results(
     documents: List[str],
     course_title: str = "Test Course",
     lesson_numbers: Optional[List[int]] = None,
-    error: Optional[str] = None
+    error: Optional[str] = None,
 ) -> SearchResults:
     """
     Create SearchResults object with given parameters.
@@ -29,21 +31,14 @@ def create_search_results(
         lesson_numbers = list(range(len(documents)))
 
     metadata = [
-        {
-            "course_title": course_title,
-            "lesson_number": lesson_num,
-            "chunk_index": i
-        }
+        {"course_title": course_title, "lesson_number": lesson_num, "chunk_index": i}
         for i, lesson_num in enumerate(lesson_numbers)
     ]
 
     distances = [0.1 * (i + 1) for i in range(len(documents))]
 
     return SearchResults(
-        documents=documents,
-        metadata=metadata,
-        distances=distances,
-        error=error
+        documents=documents, metadata=metadata, distances=distances, error=error
     )
 
 
@@ -51,7 +46,7 @@ def create_course(
     title: str = "Test Course",
     num_lessons: int = 3,
     instructor: str = "Test Instructor",
-    course_link: str = "https://example.com/course"
+    course_link: str = "https://example.com/course",
 ) -> Course:
     """
     Create a Course object with specified parameters.
@@ -69,23 +64,20 @@ def create_course(
         Lesson(
             lesson_number=i,
             title=f"Lesson {i}",
-            lesson_link=f"{course_link}/lesson-{i}"
+            lesson_link=f"{course_link}/lesson-{i}",
         )
         for i in range(num_lessons)
     ]
 
     return Course(
-        title=title,
-        course_link=course_link,
-        instructor=instructor,
-        lessons=lessons
+        title=title, course_link=course_link, instructor=instructor, lessons=lessons
     )
 
 
 def create_anthropic_response(
     text: Optional[str] = None,
     tool_use: Optional[Dict[str, Any]] = None,
-    stop_reason: str = "end_turn"
+    stop_reason: str = "end_turn",
 ) -> Mock:
     """
     Create a mock Anthropic API response.
@@ -137,14 +129,13 @@ def assert_source_format(sources: List[Dict[str, Any]]):
         assert isinstance(source["text"], str), "'text' should be a string"
 
         if "link" in source:
-            assert isinstance(source["link"], (str, type(None))), \
-                "'link' should be a string or None"
+            assert isinstance(
+                source["link"], (str, type(None))
+            ), "'link' should be a string or None"
 
 
 def create_mock_chroma_results(
-    documents: List[str],
-    metadatas: List[Dict[str, Any]],
-    distances: List[float]
+    documents: List[str], metadatas: List[Dict[str, Any]], distances: List[float]
 ) -> Dict[str, List]:
     """
     Create mock ChromaDB query results structure.
@@ -161,5 +152,5 @@ def create_mock_chroma_results(
         "documents": [documents],  # ChromaDB wraps in another list
         "metadatas": [metadatas],
         "distances": [distances],
-        "ids": [[f"doc_{i}" for i in range(len(documents))]]
+        "ids": [[f"doc_{i}" for i in range(len(documents))]],
     }

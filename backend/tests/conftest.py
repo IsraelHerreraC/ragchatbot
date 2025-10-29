@@ -1,6 +1,7 @@
 """
 Pytest configuration and shared fixtures for RAG system tests.
 """
+
 import sys
 from pathlib import Path
 
@@ -8,12 +9,13 @@ from pathlib import Path
 backend_dir = Path(__file__).parent.parent
 sys.path.insert(0, str(backend_dir))
 
+from typing import Any, Dict, List
+from unittest.mock import MagicMock, Mock
+
 import pytest
-from unittest.mock import Mock, MagicMock
-from typing import List, Dict, Any
 
 # Import models for creating test data
-from models import Course, Lesson, CourseChunk
+from models import Course, CourseChunk, Lesson
 from vector_store import SearchResults
 
 
@@ -28,19 +30,19 @@ def sample_course():
             Lesson(
                 lesson_number=0,
                 title="Introduction",
-                lesson_link="https://example.com/ml-course/lesson-0"
+                lesson_link="https://example.com/ml-course/lesson-0",
             ),
             Lesson(
                 lesson_number=1,
                 title="Supervised Learning",
-                lesson_link="https://example.com/ml-course/lesson-1"
+                lesson_link="https://example.com/ml-course/lesson-1",
             ),
             Lesson(
                 lesson_number=2,
                 title="Unsupervised Learning",
-                lesson_link="https://example.com/ml-course/lesson-2"
-            )
-        ]
+                lesson_link="https://example.com/ml-course/lesson-2",
+            ),
+        ],
     )
 
 
@@ -52,20 +54,20 @@ def sample_course_chunks():
             content="Introduction to machine learning concepts and terminology.",
             course_title="Introduction to Machine Learning",
             lesson_number=0,
-            chunk_index=0
+            chunk_index=0,
         ),
         CourseChunk(
             content="Supervised learning involves training models with labeled data.",
             course_title="Introduction to Machine Learning",
             lesson_number=1,
-            chunk_index=1
+            chunk_index=1,
         ),
         CourseChunk(
             content="Common supervised learning algorithms include linear regression and decision trees.",
             course_title="Introduction to Machine Learning",
             lesson_number=1,
-            chunk_index=2
-        )
+            chunk_index=2,
+        ),
     ]
 
 
@@ -75,34 +77,29 @@ def sample_search_results():
     return SearchResults(
         documents=[
             "Introduction to machine learning concepts and terminology.",
-            "Supervised learning involves training models with labeled data."
+            "Supervised learning involves training models with labeled data.",
         ],
         metadata=[
             {
                 "course_title": "Introduction to Machine Learning",
                 "lesson_number": 0,
-                "chunk_index": 0
+                "chunk_index": 0,
             },
             {
                 "course_title": "Introduction to Machine Learning",
                 "lesson_number": 1,
-                "chunk_index": 1
-            }
+                "chunk_index": 1,
+            },
         ],
         distances=[0.1, 0.2],
-        error=None
+        error=None,
     )
 
 
 @pytest.fixture
 def empty_search_results():
     """Create empty search results for testing."""
-    return SearchResults(
-        documents=[],
-        metadata=[],
-        distances=[],
-        error=None
-    )
+    return SearchResults(documents=[], metadata=[], distances=[], error=None)
 
 
 @pytest.fixture

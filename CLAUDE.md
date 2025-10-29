@@ -53,6 +53,47 @@ Required `.env` file in project root:
 ANTHROPIC_API_KEY=your-api-key-here
 ```
 
+### Code Quality Tools
+
+The project uses automated code quality tools to maintain consistent formatting and catch issues early.
+
+**Available Tools:**
+- **black** - Automatic code formatter (line length: 88)
+- **isort** - Import statement organizer (black-compatible profile)
+- **flake8** - Linting for style issues and common errors
+- **mypy** - Static type checker (configured for gradual typing)
+
+**Quick Commands:**
+
+```bash
+# Format code (modifies files)
+./format.sh         # Linux/Mac
+format.bat          # Windows
+
+# Check code quality (no modifications)
+./check.sh          # Linux/Mac
+check.bat           # Windows
+
+# Run individual tools
+uv run black backend
+uv run isort backend --profile black
+uv run flake8 backend
+uv run mypy backend
+
+# Run tests with coverage
+uv run pytest
+```
+
+**Configuration:**
+All tool settings are in `pyproject.toml` and `.flake8`. Key settings:
+- Line length: 88 characters (black default)
+- Python version: 3.13
+- Import style: black-compatible
+- Type checking: Gradual (non-strict mode)
+
+**Pre-commit Workflow:**
+Before committing code, run `./format.sh` or `format.bat` to automatically format and check your changes.
+
 ## Architecture
 
 ### High-Level Flow
@@ -218,7 +259,6 @@ Returns:
 
 ## Known Limitations
 
-- No test suite exists
 - Sessions are not persisted (lost on server restart)
 - No authentication/authorization
 - In-memory session storage doesn't scale
