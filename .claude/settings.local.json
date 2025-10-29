@@ -7,7 +7,14 @@
       "mcp__playwright__browser_press_key",
       "Bash(uv run:*)",
       "Bash(cat:*)",
-      "Bash(uv sync:*)"
+      "Bash(uv sync:*)",
+      "Bash(git merge:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git worktree:*)",
+      "Bash(git stash:*)",
+      "Bash(rm:*)",
+      "Bash(rmdir:*)"
     ],
     "deny": [],
     "ask": []
